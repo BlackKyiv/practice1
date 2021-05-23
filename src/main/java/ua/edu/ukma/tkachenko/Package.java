@@ -10,6 +10,8 @@ import static com.github.snksoft.crc.CRC.Parameters.CRC16;
 
 @Data
 public class Package {
+    private static final int part1Length = Byte.BYTES + Byte.BYTES + Long.BYTES + Integer.BYTES;
+
     private Message message;
 
     private Byte bSrc;
@@ -40,6 +42,17 @@ public class Package {
 
         wCrc16_1 = byteBuffer.getShort();
 
+        short wCrc16_1_test = (short) CRC.calculateCRC(CRC16, ByteBuffer.allocate(part1Length)
+                .put(bMagic)
+                .put(bSrc)
+                .putLong(bPktId.longValue())
+                .putInt(wLen)
+                .array());
+
+        if (wCrc16_1_test != wCrc16_1) {
+            throw new Exception("Wrong wCrc16_1!");
+        }
+
         message = new Message();
         message.setCType(byteBuffer.getInt());
         message.setUserId(byteBuffer.getInt());
@@ -49,6 +62,14 @@ public class Package {
 
         wCrc16_2 = byteBuffer.getShort();
 
+        short wCrc16_2_test = (short) CRC.calculateCRC(CRC16, ByteBuffer.allocate(message.getBytesLength())
+                .put(message.getBytes())
+                .array());
+
+        if (wCrc16_2_test != wCrc16_2) {
+            throw new Exception("Wrong wCrc16_2!");
+        }
+
         message.decode();
     }
 
@@ -56,7 +77,7 @@ public class Package {
     public byte[] getBytes() {
         message.encode();
         wLen = message.getMessage().length;
-        int part1Length = Byte.BYTES + Byte.BYTES + Long.BYTES + Integer.BYTES;
+
         byte[] part1 = ByteBuffer.allocate(part1Length)
                 .put(bMagic)
                 .put(bSrc)
